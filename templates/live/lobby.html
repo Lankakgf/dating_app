@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Live{% endblock %}
+{% block content %}
+<style>
+  .head { display: flex; align-items: center; justify-content: space-between; margin: 8px 2px 16px; }
+  .head h2 { margin: 0; font-size: 26px; letter-spacing: -.6px; }
+  .golive { padding: 10px 18px; width: auto; font-size: 14px; text-decoration: none; display: inline-block; }
+  .room { display: flex; align-items: center; gap: 14px; padding: 14px; margin-bottom: 12px; background: var(--glass); border: 1px solid var(--line); border-radius: 20px; text-decoration: none; color: var(--text); backdrop-filter: blur(12px); }
+  .room .av { width: 56px; height: 56px; border-radius: 50%; background: var(--grad); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 22px; flex-shrink: 0; box-shadow: var(--glow); }
+  .room .meta { flex: 1; min-width: 0; }
+  .room .meta strong { display: block; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .room .meta small { color: var(--muted); }
+  .live { display: inline-flex; align-items: center; gap: 6px; background: #ff2d4d; color: #fff; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 12px; letter-spacing: .5px; }
+  .live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #fff; animation: blink 1.2s infinite; }
+  @keyframes blink { 50% { opacity: .25; } }
+  .join { background: rgba(255,255,255,.1); border: 1px solid var(--line); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+  .none { text-align: center; padding: 50px 10px; color: var(--muted); }
+</style>
+
+<div class="head">
+  <h2>Live now</h2>
+  <a class="btn golive" href="{% url 'live_create' %}">Go live</a>
+</div>
+
+{% for r in rooms %}
+<a class="room" href="{% url 'live_room' r.slug %}">
+  <div class="av">{{ r.host.profile.display_name|slice:":1"|upper }}</div>
+  <div class="meta">
+    <strong>{{ r.title }}</strong>
+    <small>{{ r.host.profile.display_name }} · {% if r.mode == 'group' %}Group video{% else %}Broadcast{% endif %}</small>
+  </div>
+  <div style="text-align:right"><span class="live">LIVE</span><br><span class="join" style="display:inline-block;margin-top:8px">Join</span></div>
+</a>
+{% empty %}
+<div class="none">
+  <h3 style="color:var(--text)">Nobody is live right now</h3>
+  <p>Be the first. Start a room and others can join in.</p>
+</div>
+{% endfor %}
+{% endblock %}

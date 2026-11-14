@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% block title %}Chat{% endblock %}
+{% block content %}
+<style>
+  .chead { display: flex; align-items: center; gap: 12px; margin: 4px 0 6px; }
+  .chead .av { width: 46px; height: 46px; border-radius: 50%; background: var(--grad) center/cover; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0; }
+  .chead .who { flex: 1; min-width: 0; }
+  .chead .who strong { display: block; font-size: 17px; }
+  .chead .who small { color: var(--muted); }
+  .iconbtn { width: 42px; height: 42px; border-radius: 50%; background: var(--grad); display: flex; align-items: center; justify-content: center; box-shadow: var(--glow); }
+  .iconbtn svg { width: 20px; height: 20px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .safety { display: flex; gap: 14px; margin-bottom: 8px; font-size: 12px; }
+  .safety a, .safety button { background: none; border: none; padding: 0; color: var(--muted); font: 500 12px "Poppins", sans-serif; cursor: pointer; text-decoration: underline; }
+  #msgs { height: calc(100vh - 360px); min-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 8px 2px; }
+  .bubble { max-width: 78%; padding: 10px 14px; border-radius: 18px; font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; white-space: pre-wrap; }
+  .bubble small { display: block; font-size: 10px; opacity: .7; margin-top: 3px; white-space: normal; }
+  .bubble.me { align-self: flex-end; background: var(--grad); border-bottom-right-radius: 6px; }
+  .bubble.them { align-self: flex-start; background: rgba(255,255,255,.1); border: 1px solid var(--line); border-bottom-left-radius: 6px; }
+  .composer { display: flex; gap: 10px; margin-top: 10px; }
+  .composer input { margin: 0; border-radius: 26px; }
+  .composer button { width: 50px; height: 50px; flex-shrink: 0; border: none; border-radius: 50%; background: var(--grad); box-shadow: var(--glow); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .composer button svg { width: 22px; height: 22px; stroke: #fff; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+
+<div class="chead">
+  <div class="av" {% if other.profile.photo %}style="background-image:url('{{ other.profile.photo.url }}')"{% endif %}>{% if not other.profile.photo %}{{ other.profile.display_name|slice:":1"|upper }}{% endif %}</div>
+  <div class="who"><strong>{{ other.profile.display_name }}</strong><small>You matched</small></div>
+  <a class="iconbtn" href="{% url 'private_call' other.id %}" aria-label="Video call">
+    <svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+  </a>
+</div>
+<div class="safety">
+  <a href="{% url 'report_user' other.id %}">Report</a>
+  <form method="post" action="{% url 'block_user' other.id %}" onsubmit="return confirm('Block this person? You will no longer see each other.')">{% csrf_token %}<button type="submit">Block</button></form>
+</div>
+
+<div id="msgs">
+  {% for m in chat_messages %}<div class="bubble {% if m.sender_id == user.id %}me{% else %}them{% endif %}">{{ m.text }}<small>{{ m.created_at|time:"H:i" }}</small></div>{% endfor %}
+</div>
+
+<form class="composer" id="composer" autocomplete="off">
+  <input type="text" id="text" maxlength="1000" placeholder="Say something nice…" required>
+  <button type="submit" aria-label="Send"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+</form>
+
+<script>
+(function () {
+  const box = document.getElementById('msgs');
+  const input = document.getElementById('text');
+  const csrf = '{{ csrf_token }}';
+  let last = {{ last_id }};
+
+  function add(m) {
+    const d = document.createElement('div');
+    d.className = 'bubble ' + (m.mine ? 'me' : 'them');
+    d.appendChild(document.createTextNode(m.text));
+    const t = document.createElement('small');
+    t.textContent = m.time;
+    d.appendChild(t);
+    box.appendChild(d);
+  }
+  function toBottom() { box.scrollTop = box.scrollHeight; }
+
+  function poll() {
+    fetch('{% url "chat_poll" other.id %}?after=' + last, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.messages && d.messages.length) {
+          d.messages.forEach(function (m) { add(m); last = m.id; });
+          toBottom();
+        }
+      }).catch(function () {});
+  }
+
+  document.getElementById('composer').addEventListener('submit', function (e) {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    fetch('{% url "chat_send" other.id %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'text=' + encodeURIComponent(text)
+    }).then(poll);
+  });
+
+  toBottom();
+  setInterval(poll, 3000);
+})();
+</script>
+{% endblock %}

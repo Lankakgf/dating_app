@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Go live{% endblock %}
+{% block content %}
+<style>
+  input[type=checkbox] { width: auto; margin: 0 8px 0 0; vertical-align: middle; }
+</style>
+<div class="glass">
+  <h2>Start a live room</h2>
+  <p class="sub">Choose how people can join. You can share the room link with anyone.</p>
+  <form method="post">
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="field">
+        {{ field.label_tag }}
+        {{ field }}
+        {% for e in field.errors %}<div class="err">{{ e }}</div>{% endfor %}
+        {% if field.help_text %}<div class="help">{{ field.help_text }}</div>{% endif %}
+      </div>
+    {% endfor %}
+    <button class="btn" type="submit">Go live</button>
+  </form>
+</div>
+{% endblock %}

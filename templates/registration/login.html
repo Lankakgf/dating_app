@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Login{% endblock %}
+{% block content %}
+<div class="hero">
+  <h1>Welcome <span>back</span></h1>
+  <p>Someone may be waiting to meet you.</p>
+</div>
+<div class="glass">
+  <form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="err" style="margin-bottom:12px">{{ form.non_field_errors }}</div>{% endif %}
+    {% for field in form %}
+      <div class="field">
+        {{ field.label_tag }}
+        {{ field }}
+        {% for e in field.errors %}<div class="err">{{ e }}</div>{% endfor %}
+      </div>
+    {% endfor %}
+    <button class="btn" type="submit">Login</button>
+  </form>
+  <div class="alt">New here? <a href="{% url 'signup' %}">Create your account</a></div>
+</div>
+{% endblock %}

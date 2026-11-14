@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<style>
+  .rhead { display: flex; align-items: center; justify-content: space-between; margin: 4px 2px 12px; gap: 10px; }
+  .rhead h2 { margin: 0; font-size: 20px; letter-spacing: -.4px; }
+  .rhead small { color: var(--muted); }
+  .pill { background: rgba(255,255,255,.1); border: 1px solid var(--line); color: var(--text); padding: 7px 14px; border-radius: 20px; font: 600 12px "Poppins", sans-serif; cursor: pointer; }
+  .pill.danger { background: #ff2d4d; border-color: #ff2d4d; }
+  #status { color: var(--muted); font-size: 13px; text-align: center; min-height: 18px; margin-bottom: 8px; }
+  #stage { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  #stage.many { grid-template-columns: 1fr 1fr; }
+  .tile { position: relative; aspect-ratio: 3/4; border-radius: 22px; overflow: hidden; background: #1a1325; border: 1px solid var(--line); box-shadow: 0 10px 30px rgba(255,45,117,.18); }
+  #stage.many .tile { aspect-ratio: 4/5; }
+  .tile video { width: 100%; height: 100%; object-fit: cover; }
+  .tname { position: absolute; left: 10px; bottom: 10px; background: rgba(0,0,0,.55); backdrop-filter: blur(8px); padding: 4px 11px; border-radius: 14px; font-size: 12px; font-weight: 600; }
+  #waiting { display: flex; align-items: center; justify-content: center; text-align: center; aspect-ratio: 3/4; border-radius: 22px; border: 1px dashed var(--line); color: var(--muted); padding: 20px; }
+  .controls { display: flex; justify-content: center; gap: 14px; margin-top: 18px; }
+  .cbtn { width: 58px; height: 58px; border-radius: 50%; border: 1px solid var(--line); background: rgba(255,255,255,.1); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .cbtn svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .cbtn.off { background: #ff2d4d; border-color: #ff2d4d; }
+  .cbtn.leave { width: auto; padding: 0 24px; border-radius: 30px; background: #ff2d4d; border-color: #ff2d4d; font: 700 15px "Poppins", sans-serif; }
+</style>
+
+<div class="rhead">
+  <div><h2>{{ title }}</h2><small>{{ subtitle }} · <span id="count">0 in room</span></small></div>
+  <div style="display:flex;gap:8px;align-items:center">
+    {% if show_invite %}<button class="pill" id="copy">Copy link</button>{% endif %}
+    {% if report_url %}<a class="pill" href="{{ report_url }}">Report</a>{% endif %}
+    {% if is_host %}
+      <form method="post" action="{{ end_url }}" style="margin:0">{% csrf_token %}<button class="pill danger" type="submit">End live</button></form>
+    {% endif %}
+  </div>
+</div>
+
+<div id="status"></div>
+<div id="stage"></div>
+<div id="waiting">Waiting for the host to start the stream…</div>
+
+<div class="controls" id="controls">
+  <button class="cbtn" id="mic" aria-label="Microphone">
+    <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+  </button>
+  <button class="cbtn" id="cam" aria-label="Camera">
+    <svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+  </button>
+  <button class="cbtn leave" id="leave">Leave</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/livekit-client@2/dist/livekit-client.umd.min.js"></script>
+<script>
+(function () {
+  const LK = window.LivekitClient;
+  const stage = document.getElementById('stage');
+  const statusEl = document.getElementById('status');
+  const countEl = document.getElementById('count');
+  const waiting = document.getElementById('waiting');
+  const csrf = '{{ csrf_token }}';
+  let room = null;
+
+  function layout() {
+    const n = stage.querySelectorAll('.tile').length;
+    stage.classList.toggle('many', n > 1);
+    waiting.style.display = n ? 'none' : 'flex';
+    let total = 0;
+    if (room) {
+      const remote = room.remoteParticipants || room.participants;
+      total = (remote ? remote.size : 0) + 1;
+    }
+    countEl.textContent = total + ' in room';
+  }
+
+  function tileFor(p) {
+    const id = 'tile-' + p.identity;
+    let t = document.getElementById(id);
+    if (!t) {
+      t = document.createElement('div');
+      t.className = 'tile';
+      t.id = id;
+      const label = document.createElement('div');
+      label.className = 'tname';
+      label.textContent = (p.name || p.identity) + (p.isLocal ? ' (you)' : '');
+      t.appendChild(label);
+      stage.appendChild(t);
+    }
+    layout();
+    return t;
+  }
+
+  function attach(track, participant) {
+    const t = tileFor(participant);
+    const el = track.attach();
+    if (track.kind === 'video') {
+      el.setAttribute('playsinline', '');
+      t.insertBefore(el, t.firstChild);
+    } else {
+      t.appendChild(el);
+    }
+  }
+
+  async function start() {
+    statusEl.textContent = 'Connecting…';
+    let data;
+    try {
+      const r = await fetch('{{ token_url }}', { method: 'POST', headers: { 'X-CSRFToken': csrf } });
+      data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'Could not join this room.');
+    } catch (e) {
+      statusEl.textContent = e.message;
+      return;
+    }
+
+    room = new LK.Room({ adaptiveStream: true, dynacast: true });
+    room.on(LK.RoomEvent.TrackSubscribed, function (track, pub, participant) { attach(track, participant); });
+    room.on(LK.RoomEvent.TrackUnsubscribed, function (track, pub, participant) {
+      track.detach().forEach(function (el) { el.remove(); });
+      const t = document.getElementById('tile-' + participant.identity);
+      if (t && !t.querySelector('video')) t.remove();
+      layout();
+    });
+    room.on(LK.RoomEvent.LocalTrackPublished, function (pub, participant) {
+      if (pub.track && pub.track.kind === 'video') attach(pub.track, participant);
+    });
+    room.on(LK.RoomEvent.ParticipantConnected, layout);
+    room.on(LK.RoomEvent.ParticipantDisconnected, function (p) {
+      const t = document.getElementById('tile-' + p.identity);
+      if (t) t.remove();
+      layout();
+    });
+    room.on(LK.RoomEvent.Disconnected, function () { statusEl.textContent = 'You left the room.'; });
+
+    try {
+      await room.connect(data.url, data.token);
+    } catch (e) {
+      statusEl.textContent = 'Connection failed. Check your LiveKit URL and keys.';
+      return;
+    }
+    statusEl.textContent = '';
+    layout();
+
+    if (data.can_publish) {
+      try {
+        await room.localParticipant.setCameraEnabled(true);
+        await room.localParticipant.setMicrophoneEnabled(true);
+      } catch (e) {
+        statusEl.textContent = 'Please allow camera and microphone access in your browser.';
+      }
+    } else {
+      document.getElementById('mic').style.display = 'none';
+      document.getElementById('cam').style.display = 'none';
+    }
+  }
+
+  document.getElementById('mic').addEventListener('click', async function () {
+    if (!room) return;
+    const on = room.localParticipant.isMicrophoneEnabled;
+    await room.localParticipant.setMicrophoneEnabled(!on);
+    this.classList.toggle('off', on);
+  });
+  document.getElementById('cam').addEventListener('click', async function () {
+    if (!room) return;
+    const on = room.localParticipant.isCameraEnabled;
+    await room.localParticipant.setCameraEnabled(!on);
+    this.classList.toggle('off', on);
+  });
+  document.getElementById('leave').addEventListener('click', function () {
+    if (room) room.disconnect();
+    window.location.href = '{{ back_url }}';
+  });
+  const copyBtn = document.getElementById('copy');
+  if (copyBtn) copyBtn.addEventListener('click', function () {
+    navigator.clipboard.writeText(window.location.href);
+    copyBtn.textContent = 'Copied!';
+    setTimeout(function () { copyBtn.textContent = 'Copy link'; }, 1500);
+  });
+  window.addEventListener('beforeunload', function () { if (room) room.disconnect(); });
+
+  start();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}My Profile{% endblock %}
+{% block content %}
+<style>
+  .preview { display: block; width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin: 0 auto 18px; border: 3px solid transparent; background: var(--grad) border-box; box-shadow: var(--glow); }
+</style>
+<div class="glass">
+  <h2>Your profile</h2>
+  <p class="sub">A great photo and a short bio get you far more matches.</p>
+
+  {% if form.instance.photo %}<img class="preview" src="{{ form.instance.photo.url }}" alt="Your photo">{% endif %}
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}
+      <div class="field">
+        {{ field.label_tag }}
+        {{ field }}
+        {% for e in field.errors %}<div class="err">{{ e }}</div>{% endfor %}
+        {% if field.help_text %}<div class="help">{{ field.help_text|safe }}</div>{% endif %}
+      </div>
+    {% endfor %}
+    <button class="btn" type="submit">Save profile</button>
+  </form>
+</div>
+{% endblock %}
