@@ -60,6 +60,8 @@ INSTALLED_APPS = [
     'matches',
     'chat',
     'live',
+    'social',
+    'axes',
 ]
 AUTH_USER_MODEL = 'users.User'
 
@@ -70,6 +72,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'axes.middleware.AxesMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -86,6 +89,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'social.context.unread_notifications',
             ],
         },
     },
@@ -176,3 +180,9 @@ LOGOUT_REDIRECT_URL = '/accounts/login/'
 LIVEKIT_URL = config('LIVEKIT_URL', default='')
 LIVEKIT_API_KEY = config('LIVEKIT_API_KEY', default='')
 LIVEKIT_API_SECRET = config('LIVEKIT_API_SECRET', default='')
+
+# Django Axes: protect login against repeated failed attempts
+AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesStandaloneBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]

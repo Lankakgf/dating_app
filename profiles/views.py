@@ -4,6 +4,7 @@ from django.db.models import Q
 from django.shortcuts import redirect, render
 
 from matches.models import Swipe
+from matches.utils import blocked_user_ids
 
 from .forms import ProfileForm
 from .models import Profile
@@ -32,6 +33,8 @@ def discover(request):
     candidates = (
         Profile.objects.exclude(user=request.user)
         .exclude(user_id__in=seen_ids)
+        .exclude(user_id__in=blocked_user_ids(request.user))
+        .exclude(user__is_active=False)
         .exclude(date_of_birth__isnull=True)
         .filter(Q(looking_for='A') | Q(looking_for=me.gender))
     )

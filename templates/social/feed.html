@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Feed{% endblock %}
+{% block extra_head %}{% include "social/_styles.html" %}{% endblock %}
+{% block content %}
+<div class="seg">
+  <a href="{% url 'feed' %}" class="{% if tab == 'feed' %}on{% endif %}">Following</a>
+  <a href="{% url 'explore' %}" class="{% if tab == 'explore' %}on{% endif %}">Explore</a>
+  <a href="{% url 'post_create' %}" class="plus">+ Post</a>
+</div>
+
+{% if suggestions %}
+  <p class="sugg-title">People to follow</p>
+  <div class="sugg">
+    {% for p in suggestions %}
+      <a href="{% url 'user_profile' p.user.username %}">
+        {% include "social/_avatar.html" with u=p.user size="" %}
+        <div>{{ p.display_name|truncatechars:10 }}</div>
+      </a>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% for post in page_obj %}
+  {% include "social/_post_card.html" %}
+{% empty %}
+  <div class="glass" style="text-align:center">
+    <h2>Nothing here yet</h2>
+    <p class="sub">{% if tab == 'feed' %}Follow people or share your first photo.{% else %}Be the first to post.{% endif %}</p>
+    <a class="btn" style="display:block;text-decoration:none" href="{% url 'post_create' %}">Create a post</a>
+  </div>
+{% endfor %}
+
+{% include "social/_pager.html" %}
+{% include "social/_like_js.html" %}
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Alerts{% endblock %}
+{% block extra_head %}{% include "social/_styles.html" %}
+<style>
+.note{display:flex;align-items:center;gap:12px;padding:12px;border-radius:16px;text-decoration:none;color:var(--text);font-size:14px;margin-bottom:6px;border:1px solid transparent}
+.note.new{background:rgba(255,45,117,.12);border-color:rgba(255,45,117,.35)}
+.note small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.note .thumb{width:44px;height:44px;border-radius:10px;object-fit:cover;margin-left:auto}
+</style>
+{% endblock %}
+{% block content %}
+<div class="glass">
+  <h2>Alerts</h2>
+  {% for n in items %}
+    <a class="note {% if not n.read %}new{% endif %}" href="{% if n.verb == 'follow' %}{% url 'user_profile' n.actor.username %}{% elif n.verb == 'match' %}{% url 'chat_thread' n.actor.id %}{% else %}{% url 'post_detail' n.post.pk %}{% endif %}">
+      {% include "social/_avatar.html" with u=n.actor size="" %}
+      <span><b>{{ n.actor.username }}</b> {{ n.get_verb_display }}<small>{{ n.created_at|timesince }} ago</small></span>
+      {% if n.post %}<img class="thumb" src="{{ n.post.image.url }}" alt="">{% endif %}
+    </a>
+  {% empty %}
+    <p class="sub">Nothing yet. Likes, comments, follows and matches will show up here.</p>
+  {% endfor %}
+</div>
+{% include "social/_pager.html" %}
+{% endblock %}

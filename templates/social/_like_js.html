@@ -1,0 +1,18 @@
+<script>
+document.querySelectorAll('.like-form').forEach(function (f) {
+  f.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    try {
+      var token = f.querySelector('[name=csrfmiddlewaretoken]').value;
+      var r = await fetch(f.action, {
+        method: 'POST', credentials: 'same-origin',
+        headers: {'X-CSRFToken': token, 'X-Requested-With': 'XMLHttpRequest'}
+      });
+      if (!r.ok) throw new Error('failed');
+      var d = await r.json();
+      f.querySelector('button').classList.toggle('liked', d.liked);
+      f.querySelector('.count').textContent = d.count;
+    } catch (err) { f.submit(); }
+  });
+});
+</script>

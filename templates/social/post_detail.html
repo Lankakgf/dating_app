@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Post{% endblock %}
+{% block extra_head %}{% include "social/_styles.html" %}{% endblock %}
+{% block content %}
+{% include "social/_post_card.html" %}
+
+<div class="glass">
+  <h2 style="font-size:18px">Comments</h2>
+  {% for c in comments %}
+    <div class="cm">
+      {% include "social/_avatar.html" with u=c.author size="" %}
+      <div style="flex:1">
+        <b>{{ c.author.username }}</b> {{ c.text }}
+        <div class="help">{{ c.created_at|timesince }} ago</div>
+      </div>
+      {% if c.author_id == request.user.id or post.author_id == request.user.id %}
+        <form method="post" action="{% url 'comment_delete' c.pk %}">{% csrf_token %}<button class="linkbtn" type="submit">Delete</button></form>
+      {% endif %}
+    </div>
+  {% empty %}
+    <p class="sub">No comments yet. Say something nice.</p>
+  {% endfor %}
+  <form method="post" action="{% url 'post_comment' post.pk %}" style="margin-top:14px">{% csrf_token %}
+    <div class="field"><input name="text" maxlength="300" placeholder="Add a comment..." required></div>
+    <button class="btn" type="submit">Post comment</button>
+  </form>
+</div>
+<p class="alt"><a href="{% url 'feed' %}">&larr; Back to feed</a></p>
+{% include "social/_like_js.html" %}
+{% endblock %}

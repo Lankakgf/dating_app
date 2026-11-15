@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Too many attempts{% endblock %}
+{% block content %}
+<div class="glass" style="text-align:center">
+  <h2>Too many failed logins</h2>
+  <p class="sub">For your security, login is locked for 15 minutes. If you forgot your password, you can reset it by email.</p>
+  <a class="btn" style="display:block;text-decoration:none" href="{% url 'password_reset' %}">Reset password</a>
+</div>
+{% endblock %}

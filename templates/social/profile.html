@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}{{ target.username }}{% endblock %}
+{% block extra_head %}{% include "social/_styles.html" %}{% endblock %}
+{% block content %}
+<div class="glass phead">
+  {% include "social/_avatar.html" with u=target size="lg" %}
+  <h2>{{ profile.display_name|default:target.username }}</h2>
+  <div class="sub" style="margin:0">@{{ target.username }}{% if profile.city %} &middot; {{ profile.city }}{% endif %}</div>
+  {% if profile.bio %}<p style="font-size:14px;margin:10px 0 0">{{ profile.bio }}</p>{% endif %}
+  <div class="stats">
+    <div><b>{{ post_total }}</b><span>Posts</span></div>
+    <div><b>{{ followers }}</b><span>Followers</span></div>
+    <div><b>{{ following_count }}</b><span>Following</span></div>
+  </div>
+  {% if target == request.user %}
+    <a class="btn ghost" style="display:block;text-decoration:none" href="{% url 'edit_profile' %}">Edit profile</a>
+  {% else %}
+    <form method="post" action="{% url 'follow_toggle' target.username %}">{% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <button class="btn {% if is_following %}ghost{% endif %}" type="submit">{% if is_following %}Following{% else %}Follow{% endif %}</button>
+    </form>
+  {% endif %}
+</div>
+
+{% if page_obj %}
+  <div class="grid3">
+    {% for post in page_obj %}
+      <a href="{% url 'post_detail' post.pk %}"><img src="{{ post.image.url }}" alt=""></a>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="alt">No posts yet.</p>
+{% endif %}
+{% include "social/_pager.html" %}
+{% endblock %}

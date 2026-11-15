@@ -6,8 +6,11 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
+from social.notify import notify
+
 from .forms import ReportForm
 from .models import Block, Match, Report, Swipe
+from .utils import blocked_user_ids
 
 User = get_user_model()
 
@@ -15,10 +18,10 @@ User = get_user_model()
 @login_required
 @require_POST
 def swipe(request, user_id):
-    target = get_object_or_404(User, pk=user_id)
+    target = get_object_or_404(User, pk=user_id, is_active=True)
     is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
 
-    if target == request.user:
+    if target == request.user or target.id in blocked_user_ids(request.user):
         return JsonResponse({'matched': False}) if is_ajax else redirect('discover')
 
     liked = request.POST.get('action') == 'like'
@@ -31,6 +34,9 @@ def swipe(request, user_id):
         a, b = sorted([request.user.id, target.id])
         _, created = Match.objects.get_or_create(user1_id=a, user2_id=b)
         matched = created
+        if matched:
+            notify(target, request.user, 'match')
+            notify(request.user, target, 'match')
 
     profile = getattr(target, 'profile', None)
     name = profile.display_name if profile else target.username

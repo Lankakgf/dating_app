@@ -1,0 +1,29 @@
+<article class="post">
+  <div class="post-head">
+    <a href="{% url 'user_profile' post.author.username %}" style="display:flex;align-items:center;gap:10px">
+      {% include "social/_avatar.html" with u=post.author size="" %}
+      <span>{{ post.author.profile.display_name|default:post.author.username }}<small>@{{ post.author.username }} &middot; {{ post.created_at|timesince }} ago</small></span>
+    </a>
+    {% if post.author_id == request.user.id %}
+    <form method="post" action="{% url 'post_delete' post.pk %}" style="margin-left:auto" onsubmit="return confirm('Delete this post?');">
+      {% csrf_token %}<button class="linkbtn" type="submit">Delete</button>
+    </form>
+    {% endif %}
+  </div>
+  <a href="{% url 'post_detail' post.pk %}"><img class="pic" src="{{ post.image.url }}" alt=""></a>
+  <div class="post-actions">
+    <form class="like-form" method="post" action="{% url 'post_like' post.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <button type="submit" class="iconbtn {% if post.liked %}liked{% endif %}">
+        <svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21.2l7.8-7.7 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+        <span class="count">{{ post.like_count }}</span>
+      </button>
+    </form>
+    <a class="iconbtn" href="{% url 'post_detail' post.pk %}">
+      <svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.4 8.4 0 0 1 12 3a8.5 8.5 0 0 1 9 8.5z"/></svg>
+      {{ post.comment_count }}
+    </a>
+  </div>
+  {% if post.caption %}<div class="cap"><b>{{ post.author.username }}</b>{{ post.caption }}</div>{% else %}<div style="height:14px"></div>{% endif %}
+</article>

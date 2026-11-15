@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<div class="glass" style="margin-bottom:16px">
+  <h2>Change password</h2>
+  <form method="post">{% csrf_token %}
+    <div class="field"><label>Current password</label>{{ form.old_password }}{% for e in form.old_password.errors %}<div class="err">{{ e }}</div>{% endfor %}</div>
+    <div class="field"><label>New password</label>{{ form.new_password1 }}{% for e in form.new_password1.errors %}<div class="err">{{ e }}</div>{% endfor %}</div>
+    <div class="field"><label>Confirm new password</label>{{ form.new_password2 }}{% for e in form.new_password2.errors %}<div class="err">{{ e }}</div>{% endfor %}</div>
+    <button class="btn" type="submit">Save password</button>
+  </form>
+</div>
+
+<div class="glass" style="margin-bottom:16px">
+  <h2>Delete account</h2>
+  <p class="sub">This permanently deletes your profile, photo, matches and messages. It cannot be undone.</p>
+  <form method="post" action="{% url 'delete_account' %}" onsubmit="return confirm('Delete your account permanently?');">{% csrf_token %}
+    <div class="field"><label>Confirm with your password</label><input type="password" name="password" required></div>
+    <button class="btn ghost" style="border-color:#ff4d6d;color:#ff8da0" type="submit">Delete my account</button>
+  </form>
+</div>
+
+<p class="alt"><a href="{% url 'terms' %}">Terms</a> · <a href="{% url 'privacy' %}">Privacy</a></p>
+{% endblock %}

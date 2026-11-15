@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}New post{% endblock %}
+{% block extra_head %}{% include "social/_styles.html" %}{% endblock %}
+{% block content %}
+<div class="glass">
+  <h2>New post</h2>
+  <form method="post" enctype="multipart/form-data">{% csrf_token %}
+    <div class="field"><label>Photo</label>{{ form.image }}{% for e in form.image.errors %}<div class="err">{{ e }}</div>{% endfor %}</div>
+    <div class="field"><label>Caption</label>{{ form.caption }}{% for e in form.caption.errors %}<div class="err">{{ e }}</div>{% endfor %}</div>
+    <button class="btn" type="submit">Share</button>
+  </form>
+  <p class="help">Photos only, up to 5 MB. No nudity or sexual content.</p>
+  <p class="alt"><a href="{% url 'feed' %}">Cancel</a></p>
+</div>
+{% endblock %}

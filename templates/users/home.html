@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Spark: meet someone new{% endblock %}
+{% block content %}
+<div class="hero">
+  <h1>Find your <span>spark</span></h1>
+  <p>Swipe, match, chat and go live with people near you.</p>
+</div>
+<div class="glass">
+  <a class="btn" style="display:block;text-align:center;text-decoration:none;margin-bottom:12px" href="{% url 'signup' %}">Create account</a>
+  <a class="btn ghost" style="display:block;text-align:center;text-decoration:none" href="{% url 'login' %}">I already have an account</a>
+  <p class="help" style="text-align:center;margin-top:14px">You must be 18 or older. By joining you agree to our <a href="{% url 'terms' %}">Terms</a> and <a href="{% url 'privacy' %}">Privacy Policy</a>.</p>
+</div>
+{% endblock %}
